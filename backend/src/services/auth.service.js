@@ -1,15 +1,16 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Admin } from "../models/admin.model.js";
+import { Artisan } from "../models/artisan.model.js";
 import { generateOTP } from "../utils/otp.js";
 import { sendOTPEmail } from "../utils/email.js";
 
 // 🔐 Generate Token
-const generateToken = (admin) => {
+const generateToken = (user) => {
   return jwt.sign(
     {
-      userId: admin._id,
-      role: admin.role,
+      userId: user._id,
+      role: user.role || "ARTISAN",
     },
     process.env.ADMIN_JWT_SECRET,
     {
@@ -18,58 +19,95 @@ const generateToken = (admin) => {
   );
 };
 
-// 📝 REGISTER (Super Admin with OTP)
-export const registerAdmin = async (data) => {
-  const { name, email, password } = data;
+// 📝 REGISTER (ADMIN + ARTISAN) ✅ FIXED
+export const registerUser = async (data) => {
+  const { name, email, password, role } = data;
 
-  const existing = await Admin.findOne({ email });
-  if (existing) throw new Error("Admin already exists");
+  if (!role) throw new Error("Role is required");
+
+  // 🔥 MAIN FIX → CHECK BOTH COLLECTIONS
+  const existingAdmin = await Admin.findOne({ email });
+  const existingArtisan = await Artisan.findOne({ email });
+
+  if (existingAdmin || existingArtisan) {
+    throw new Error("Email already registered");
+  }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-
-  // 🔢 Generate OTP
   const otp = generateOTP();
 
-  const admin = await Admin.create({
-    name,
-    email,
-    password: hashedPassword,
-    role: "superadmin",
-    otp,
-    otpExpiry: Date.now() + 5 * 60 * 1000, // 5 min
-    isVerified: false,
-  });
+  let user;
 
-  // ✉️ Send OTP email
+  // ✅ ARTISAN REGISTER
+  if (role === "ARTISAN") {
+    user = await Artisan.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "ARTISAN",
+      otp,
+      otpExpiry: Date.now() + 5 * 60 * 1000,
+      isVerified: false,
+    });
+  } 
+  // ✅ ADMIN REGISTER
+  else {
+    user = await Admin.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "ADMIN",
+      otp,
+      otpExpiry: Date.now() + 5 * 60 * 1000,
+      isVerified: false,
+    });
+  }
+
   await sendOTPEmail(email, otp);
 
-  return admin;
+  return user;
 };
 
-// 🔑 LOGIN
-export const loginAdmin = async (data) => {
-  const { email, password } = data;
+// 🔑 LOGIN (ROLE BASED + OTP)
+export const loginUser = async (data) => {
+  const { email, password, role } = data;
 
-  const admin = await Admin.findOne({ email });
-  if (!admin) throw new Error("Invalid credentials");
+  if (!role) throw new Error("Role is required");
 
-  // ❗ Block login if not verified
-  if (!admin.isVerified) {
+  let user;
+
+  // ✅ FIND USER BASED ON ROLE
+  if (role === "ARTISAN") {
+    user = await Artisan.findOne({ email });
+  } else {
+    user = await Admin.findOne({ email });
+  }
+
+  if (!user) {
+    throw new Error(`${role} not found with this email`);
+  }
+
+  if (!user.isVerified) {
     throw new Error("Please verify your email first");
   }
 
-  const isMatch = await bcrypt.compare(password, admin.password);
+  const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error("Invalid credentials");
 
-  const token = generateToken(admin);
+  // 🔐 GENERATE OTP FOR LOGIN
+  const otp = generateOTP();
+
+  user.otp = otp;
+  user.otpExpiry = Date.now() + 5 * 60 * 1000;
+
+  await user.save();
+
+  await sendOTPEmail(user.email, otp);
 
   return {
-    admin: {
-      id: admin._id,
-      name: admin.name,
-      email: admin.email,
-      role: admin.role,
-    },
-    token,
+    success: true,
+    message: "OTP sent to email",
+    email: user.email,
+    role: user.role,
   };
 };

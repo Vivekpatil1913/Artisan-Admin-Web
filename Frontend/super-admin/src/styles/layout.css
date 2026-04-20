@@ -1,0 +1,120 @@
+/* Layout */
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: #f5f5f5;
+  border-right: 1px solid #e5e5e5; /* 🔥 matched with navbar */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.sidebar-title span {
+  font-size: 16px;
+}
+
+.sidebar-title {
+  height: 64px;
+  padding: 0 20px;
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: #f5f5f5; /* 🔥 ensures same tone as sidebar */
+  color: #e07a3f;
+  font-size: 18px;
+  font-weight: 700;
+
+  letter-spacing: 0.3px;
+}
+
+/* Menu */
+.sidebar ul {
+  list-style: none;
+  padding: 10px 0;
+  margin: 0;
+}
+
+.sidebar li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+
+  transition: all 0.2s ease;
+}
+
+/* Icon */
+.sidebar li svg {
+  color: #444;
+}
+
+/* Hover */
+.sidebar li:hover {
+  background: #eee;
+}
+
+/* Active */
+.sidebar .active {
+  background: #e9e1db;
+  color: #e07a3f;
+  border-left: 4px solid #e07a3f;
+}
+
+.sidebar .active svg {
+  color: #e07a3f;
+}
+
+/* Main */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: white;
+  border-bottom: 1px solid #e5e5e5; /* 🔥 same as sidebar */
+}
+
+/* Right section */
+.nav-right {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Profile */
+.profile {
+  background: #5a3e2b;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Content */
+.content {
+  flex: 1;
+  padding: 20px;
+  background: #f3f3f3; /* 🔥 softer background like UI */
+  overflow-y: auto;
+}
